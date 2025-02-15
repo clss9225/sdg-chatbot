@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小修 - SDGs 永續小達人</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #FFF9F2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        
+        /* 浮動聊天視窗 */
+        .chat-container {
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        /* 標題列 */
+        .chat-header {
+            background: #FF914D;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+
+        /* 訊息顯示區 */
+        .chat-messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background: #FFF9F2;
+        }
+
+        /* 訊息樣式 */
+        .message {
+            max-width: 80%;
+            padding: 10px;
+            border-radius: 15px;
+            margin: 5px 0;
+            word-wrap: break-word;
+        }
+        .user {
+            background: #FFD166;
+            color: black;
+            align-self: flex-end;
+            text-align: right;
+        }
+        .bot {
+            background: #F4A261;
+            color: white;
+            align-self: flex-start;
+        }
+
+        /* 輸入區 */
+        .chat-input {
+            display: flex;
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #ddd;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+        #user-input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            outline: none;
+            border-radius: 5px;
+            background: #f1f1f1;
+        }
+        #send-button {
+            background: #FF914D;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin-left: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #send-button:hover {
+            background: #E76F51;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <div class="chat-header">💬 小修 - SDGs 永續小達人</div>
+        <div class="chat-messages" id="chat-container"></div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="輸入您的訊息..." />
+            <button id="send-button">發送</button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://api.groq.com/openai/v1/chat/completions";
+        const API_KEY = "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"; // 請替換為您的 API Key
+
+        const systemPrompt = "你是小修，一個SDGs（永續發展目標）小達人，性格大方、活潑，熱愛回答學生關於永續議題的問題。請用親切的語氣回答，並提供有用的資訊。請確保回應為繁體中文。";
+
+        document.getElementById("send-button").addEventListener("click", sendMessage);
+        document.getElementById("user-input").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") sendMessage();
+        });
+
+        async function sendMessage() {
+            const userInput = document.getElementById("user-input").value;
+            if (!userInput.trim()) return;
+
+            addMessage("user", userInput);
+            document.getElementById("user-input").value = "";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3.3-70b-versatile",
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: userInput }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 回應錯誤: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const botReply = data.choices[0].message.content || "無法獲取回應。";
+                addTypingEffect("bot", botReply);
+            } catch (error) {
+                addMessage("bot", "發生錯誤，請稍後再試。");
+                console.error("錯誤詳情:", error);
+            }
+        }
+
+        function addMessage(role, text) {
+            const chatContainer = document.getElementById("chat-container");
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", role);
+            messageDiv.textContent = text;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addTypingEffect(role, text) {
+            const chatContainer = document.getElementById("chat-container");
+            const messageDiv = document.createElement("div");
+            messageDiv.classList.add("message", role);
+            chatContainer.appendChild(messageDiv);
+
+            let index = 0;
+            function typeNextCharacter() {
+                if (index < text.length) {
+                    messageDiv.textContent += text.charAt(index);
+                    index++;
+                    setTimeout(typeNextCharacter, 30);
+                }
+            }
+            typeNextCharacter();
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    </script>
+
+</body>
+</html>
